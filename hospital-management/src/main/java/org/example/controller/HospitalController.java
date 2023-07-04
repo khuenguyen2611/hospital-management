@@ -8,6 +8,9 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 public class HospitalController {
@@ -15,7 +18,65 @@ public class HospitalController {
     
     private static Scanner sc = new Scanner(System.in);
 
-    //Add new Patient from File
+    //Add Patient
+    public void addPatient(){
+        Patient patient = new Patient();
+        System.out.println("\n===== ADD NEW PATIENT =====");
+
+        System.out.print("Please enter patient name : ");
+        patient.setName(sc.nextLine());
+
+        boolean isGenderValid = false;
+        while (!isGenderValid){
+            System.out.print("Please enter patient gender : ");
+            String gender = sc.nextLine();
+            isGenderValid = validateGender(gender);
+            if(isGenderValid == true){
+                patient.setGender(gender.toUpperCase());
+            }
+        }
+
+        System.out.print("Please enter patient age : ");
+        patient.setAge(sc.nextInt());
+
+        //Unique
+        boolean isIdValid = false;
+        while (!isIdValid){
+            System.out.print("Please enter patient id : ");
+            int id = sc.nextInt();
+            isIdValid = validateId(id);
+            if(isIdValid){
+                patient.setPatientId(id);
+            }
+            else {
+                System.out.println("Id has existed. Please enter other id!!!");
+            }
+        }
+
+
+        sc.nextLine();
+
+        boolean isJoinTimeValid = false;
+        while (!isJoinTimeValid){
+            System.out.print("Please enter patient Join Time: ");
+            String joinTime = sc.nextLine();
+            isJoinTimeValid = validateDate(joinTime);
+            if(isJoinTimeValid == true){
+                patient.setJoinTime(joinTime);
+            }
+            else {
+                System.out.println("Date are not in dd/MM/yyyy format.");
+            }
+        }
+
+
+        System.out.print("Please enter patient Exit Time: ");
+        patient.setExitTime(sc.nextLine());
+
+        hospitalLists.add(patient);
+    }
+
+    //Import new Patient from File
     public void importPatientFromFile(String fileName){
         try{
             FileReader fr = new FileReader("src/main/resources/" + fileName + ".txt");
@@ -27,7 +88,25 @@ public class HospitalController {
                 Patient patient = new Patient(patientData[0], patientData[1], Integer.parseInt(patientData[2]),
                         Integer.parseInt(patientData[3]), patientData[4], patientData[5]);
 
-                hospitalLists.add(patient);
+                if(validateId(patient.getPatientId()) == true){
+                    hospitalLists.add(patient);
+                }
+                else{
+                    System.out.println("Patient ID has existed");
+                    System.out.println("Existed patient: " + getPatientById(patient.getPatientId()).showInfo());
+                    System.out.println("Imported patient: " + patient.showInfo());
+                    System.out.print("Do you want to override old data (y/N): ");
+                    String choice = sc.nextLine();
+                    switch (choice.trim().toLowerCase()){
+                        case "y" -> {
+                            hospitalLists.remove(getPatientById(patient.getPatientId()));
+                            hospitalLists.add(patient);
+                        }
+                        case "n" -> {
+
+                        }
+                    }
+                }
             }
 
             fr.close();
@@ -71,6 +150,19 @@ public class HospitalController {
         return -1;
     }
 
+    //Get Patient by Id
+    public static Patient getPatientById(int patientID){
+        for (Person person : hospitalLists){
+            if(person instanceof Patient){
+                //If found Patient ?
+                if(((Patient) person).getPatientId() == patientID){
+                    return (Patient) person;
+                }
+            }
+        }
+        return null;
+    }
+
     //Update Patient
     public void updatePatient(){
         //Check if patient exist ?
@@ -94,8 +186,6 @@ public class HospitalController {
             System.out.println("Patient not found!");
         }
     }
-
-    //Export Patient
 
     //List all Patient
     public void listAllPatient(){
@@ -182,5 +272,62 @@ public class HospitalController {
             System.out.println(person.showInfo());
         }
         System.out.println("");
+    }
+
+    public void deletePatientById(){
+        System.out.print("Please enter patient id to delete: ");
+        Patient patient = getPatientById(sc.nextInt());
+
+        if(patient == null){
+            System.out.println("Patient is not existed !!!\n");
+        }
+        else {
+            sc.nextLine();
+            System.out.println("Delete " + patient.showInfo());
+            System.out.print("[Y/n] :");
+            String choice = sc.nextLine().trim().toLowerCase();
+            switch (choice){
+                case "y" -> {
+                    hospitalLists.remove(patient);
+                    System.out.println("Delete patient successfully!!!\n");
+                }
+                case "n" -> {
+
+                }
+                default -> {
+
+                }
+            }
+        }
+    }
+
+    //Validate
+    private static boolean validateGender(String gender){
+        if(gender.equalsIgnoreCase("male") || gender.equalsIgnoreCase("female")){
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean validateId(int id){
+        for (Person person : hospitalLists){
+            if(person instanceof Patient){
+                if(((Patient) person).getPatientId() == id){
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static boolean validateDate(String date){
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        try {
+            LocalDate.parse(date, dateFormatter);
+            return true;
+        } catch (DateTimeParseException e) {
+            return false;
+        }
     }
 }
